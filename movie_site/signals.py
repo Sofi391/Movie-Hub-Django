@@ -98,7 +98,7 @@ def community_activity_notification(sender, instance, created, **kwargs):
     # Keep action_url as backup
     url = f"/my/{status_path}/{instance.media.type}/?user_id={instance.user.id}"
 
-    recipients = User.objects.exclude(id=instance.user.id).exclude(username='adminsofi').values_list('id', flat=True)
+    recipients = User.objects.exclude(id=instance.user.id).exclude(username='adminsofi').exclude(username='adminsofi').values_list('id', flat=True)
     notifications = [
         Notification(
             sender=instance.user,
