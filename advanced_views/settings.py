@@ -25,7 +25,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 DEBUG=os.getenv("DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = ['.onrender.com','celeryworker1-ahk5w03o.b4a.run', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['.onrender.com','celeryworker1-ahk5w03o.b4a.run', 'localhost', '127.0.0.1','*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -175,3 +175,4 @@ CELERY_TIMEZONE = 'UTC'
 
 # Celery beat scheduler
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+# git commit -m "feat: Add community activity feed and major UI/UX improvements" -m "- Add community activity notifications for user watchlist/watched actions" -m "  * New 'Activity' type with anti-spam filtering (rate limiting, 25% sampling, 6.0+ rating)" -m "  * Notifications link to specific user lists via user_id parameter" -m "  * Database migration 0011 and signals.py updated with post_save handlers" -m "- Modernize UI/UX and enhance user engagement features" -m "  * Replace traditional pagination with infinite scroll for a smoother browsing experience" -m "  * Implement AJAX for watchlist/watched actions to eliminate page redirects" -m "  * Add a 'Pick Tonight's Movie/Show' button to randomly select content from the user's watchlist" -m "  * Upgrade layouts across home, search, grid views, and favorites for better presentation" -m "- Backend and architecture improvements" -m "  * Update UserMediaListView and add user_media_json endpoint for better data handling" -m "  * Optimize URL patterns, routing, and view logic for enhanced performance"
