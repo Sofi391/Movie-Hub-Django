@@ -9,7 +9,7 @@ from .views import (Home, AddMovie, EditMovie, DeleteMovie,
                     get_badge_count,check_new_badges,add_to_watched,
                     QuizQuestionsListView,save_quiz_results,announcement_noti,
                     Notifications,mark_notification_read,mark_all_notifications_read,
-                    delete_notification,health)
+                    delete_notification,health,user_media_json,random_pick)
 
 urlpatterns = [
     path('',Home.as_view(),name='home'),
@@ -28,7 +28,9 @@ urlpatterns = [
     path('add_to_watched/',add_to_watched,name='add_to_watched'),
     path('add_to_favorite/',add_to_favorite,name='add_to_favorite'),
     path('my/favorites/<str:type>/',FavoriteListView.as_view(),name='favorites'),
+    path('my/random-pick/<str:type>/',random_pick,name='random_pick'),
     path('my/<str:status>/<str:type>/',UserMediaListView.as_view(),name='user_media'),
+    path('my/<str:status>/<str:type>/json/',user_media_json,name='user_media_json'),
 
     path('edit/my/<slug:media_slug>/',update_user_media,name='edit_user_media'),
     path('delete/my_fav/<slug:media_slug>/',remove_from_fav,name='remove_from_favorite'),

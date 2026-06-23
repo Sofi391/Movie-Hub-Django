@@ -161,6 +161,7 @@ class Notification(models.Model):
         ('Reminder', 'Reminder'),
         ('Quiz', 'Quiz'),
         ('Badge', 'Badge'),
+        ('Activity', 'Activity'),
     ]
     sender = models.ForeignKey(User,on_delete=models.CASCADE,related_name='sent_notifications')
     recipient = models.ForeignKey(User,on_delete=models.CASCADE,related_name='received_notifications')

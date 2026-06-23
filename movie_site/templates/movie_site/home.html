@@ -226,7 +226,79 @@
                 </div>
             </section>
 
-            <!-- Trending Movies Section -->
+            <!-- Recommended Movies Section -->
+            {% if user.is_authenticated and recommended_movies %}
+            <section class="media-section">
+                <div class="section-header">
+                    <h2 class="section-title-modern">
+                        <span class="title-text">✨ Recommended for You</span>
+                        <div class="title-underline"></div>
+                    </h2>
+                    <div class="section-controls">
+                        <button class="section-nav-btn prev-btn" data-section="recommended-movies"><i class="fas fa-chevron-left"></i></button>
+                        <button class="section-nav-btn next-btn" data-section="recommended-movies"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="media-scroller" id="recommended-movies-scroller">
+                    <div class="media-container">
+                        {% for movie in recommended_movies %}
+                        <div class="media-card" data-media-id="{{ movie.id }}">
+                            <div class="media-poster-container">
+                                <img src="{{ movie.poster }}" alt="{{ movie.name }}" class="media-poster">
+                                <div class="media-overlay">
+                                    <div class="action-buttons">
+                                        <form method="POST" action="{% url 'add_to_collection' %}" class="action-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="title" value="{{ movie.name }}">
+                                            <input type="hidden" name="description" value="{{ movie.description|default:'' }}">
+                                            <input type="hidden" name="release_date" value="{{ movie.release_date|date:'Y-m-d' }}">
+                                            <input type="hidden" name="poster" value="{{ movie.poster }}">
+                                            <input type="hidden" name="trailer_url" value="{{ movie.trailer_url|default:'' }}">
+                                            <input type="hidden" name="type" value="movie">
+                                            <input type="hidden" name="rating" value="{{ movie.rating|default:0 }}">
+                                            <button type="submit" class="action-btn watchlist-btn" title="Add to Watchlist"><i class="fas fa-clock"></i></button>
+                                        </form>
+                                        <form method="POST" action="{% url 'add_to_favorite' %}" class="action-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="title" value="{{ movie.name }}">
+                                            <input type="hidden" name="description" value="{{ movie.description|default:'' }}">
+                                            <input type="hidden" name="release_date" value="{{ movie.release_date|date:'Y-m-d' }}">
+                                            <input type="hidden" name="poster" value="{{ movie.poster }}">
+                                            <input type="hidden" name="trailer_url" value="{{ movie.trailer_url|default:'' }}">
+                                            <input type="hidden" name="type" value="movie">
+                                            <input type="hidden" name="rating" value="{{ movie.rating|default:0 }}">
+                                            <button type="submit" class="action-btn favorite-btn" title="Add to Favorites"><i class="fas fa-heart"></i></button>
+                                        </form>
+                                        <form method="POST" action="{% url 'mark_watched' movie.slug %}" class="action-form">
+                                            {% csrf_token %}
+                                            <button type="submit" class="action-btn watched-btn" title="Mark as Watched"><i class="fas fa-check"></i></button>
+                                        </form>
+                                        {% if movie.trailer_url %}
+                                        <button class="action-btn trailer-btn" title="Watch Trailer" data-trailer="{{ movie.trailer_url }}"><i class="fas fa-play"></i></button>
+                                        {% endif %}
+                                        <button class="action-btn info-btn" title="View Details" data-media='{"title": "{{ movie.name }}", "description": "{{ movie.description|default:'No description available' }}", "poster": "{{ movie.poster }}", "year": "{{ movie.release_date|date:'Y' }}", "rating": "{{ movie.rating|default:'N/A' }}", "genres": "{% for genre in movie.genre.all %}{{ genre.name }}{% if not forloop.last %}, {% endif %}{% endfor %}"}'><i class="fas fa-info"></i></button>
+                                    </div>
+                                </div>
+                                <div class="media-badge movie-badge"><i class="fas fa-magic"></i></div>
+                            </div>
+                            <div class="media-info">
+                                <h4 class="media-title">{{ movie.name }}</h4>
+                                <div class="media-meta">
+                                    <span class="media-year"><i class="fas fa-calendar"></i> {{ movie.release_date|date:"Y" }}</span>
+                                    <span class="media-rating"><i class="fas fa-star"></i> {{ movie.rating|floatformat:1|default:"N/A" }}</span>
+                                </div>
+                                <div class="media-genres">
+                                    {% for genre in movie.genre.all|slice:":2" %}<span class="genre-tag">{{ genre.name }}</span>{% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+
+            <!-- Popular Movies Section -->
             <section class="media-section">
                 <div class="section-header">
                     <h2 class="section-title-modern">
@@ -761,7 +833,79 @@
                 </div>
             </section>
 
-            <!-- Trending TV Shows Section -->
+            <!-- Recommended Shows Section -->
+            {% if user.is_authenticated and recommended_shows %}
+            <section class="media-section">
+                <div class="section-header">
+                    <h2 class="section-title-modern">
+                        <span class="title-text">✨ Recommended for You</span>
+                        <div class="title-underline"></div>
+                    </h2>
+                    <div class="section-controls">
+                        <button class="section-nav-btn prev-btn" data-section="recommended-shows"><i class="fas fa-chevron-left"></i></button>
+                        <button class="section-nav-btn next-btn" data-section="recommended-shows"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="media-scroller" id="recommended-shows-scroller">
+                    <div class="media-container">
+                        {% for show in recommended_shows %}
+                        <div class="media-card" data-media-id="{{ show.id }}">
+                            <div class="media-poster-container">
+                                <img src="{{ show.poster }}" alt="{{ show.name }}" class="media-poster">
+                                <div class="media-overlay">
+                                    <div class="action-buttons">
+                                        <form method="POST" action="{% url 'add_to_collection' %}" class="action-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="title" value="{{ show.name }}">
+                                            <input type="hidden" name="description" value="{{ show.description|default:'' }}">
+                                            <input type="hidden" name="release_date" value="{{ show.release_date|date:'Y-m-d' }}">
+                                            <input type="hidden" name="poster" value="{{ show.poster }}">
+                                            <input type="hidden" name="trailer_url" value="{{ show.trailer_url|default:'' }}">
+                                            <input type="hidden" name="type" value="tv">
+                                            <input type="hidden" name="rating" value="{{ show.rating|default:0 }}">
+                                            <button type="submit" class="action-btn watchlist-btn" title="Add to Watchlist"><i class="fas fa-clock"></i></button>
+                                        </form>
+                                        <form method="POST" action="{% url 'add_to_favorite' %}" class="action-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="title" value="{{ show.name }}">
+                                            <input type="hidden" name="description" value="{{ show.description|default:'' }}">
+                                            <input type="hidden" name="release_date" value="{{ show.release_date|date:'Y-m-d' }}">
+                                            <input type="hidden" name="poster" value="{{ show.poster }}">
+                                            <input type="hidden" name="trailer_url" value="{{ show.trailer_url|default:'' }}">
+                                            <input type="hidden" name="type" value="tv">
+                                            <input type="hidden" name="rating" value="{{ show.rating|default:0 }}">
+                                            <button type="submit" class="action-btn favorite-btn" title="Add to Favorites"><i class="fas fa-heart"></i></button>
+                                        </form>
+                                        <form method="POST" action="{% url 'mark_watched' show.slug %}" class="action-form">
+                                            {% csrf_token %}
+                                            <button type="submit" class="action-btn watched-btn" title="Mark as Watched"><i class="fas fa-check"></i></button>
+                                        </form>
+                                        {% if show.trailer_url %}
+                                        <button class="action-btn trailer-btn" title="Watch Trailer" data-trailer="{{ show.trailer_url }}"><i class="fas fa-play"></i></button>
+                                        {% endif %}
+                                        <button class="action-btn info-btn" title="View Details" data-media='{"title": "{{ show.name }}", "description": "{{ show.description|default:'No description available' }}", "poster": "{{ show.poster }}", "year": "{{ show.release_date|date:'Y' }}", "rating": "{{ show.rating|default:'N/A' }}", "genres": "{% for genre in show.genre.all %}{{ genre.name }}{% if not forloop.last %}, {% endif %}{% endfor %}"}'><i class="fas fa-info"></i></button>
+                                    </div>
+                                </div>
+                                <div class="media-badge show-badge"><i class="fas fa-magic"></i></div>
+                            </div>
+                            <div class="media-info">
+                                <h4 class="media-title">{{ show.name }}</h4>
+                                <div class="media-meta">
+                                    <span class="media-year"><i class="fas fa-calendar"></i> {{ show.release_date|date:"Y" }}</span>
+                                    <span class="media-rating"><i class="fas fa-star"></i> {{ show.rating|floatformat:1|default:"N/A" }}</span>
+                                </div>
+                                <div class="media-genres">
+                                    {% for genre in show.genre.all|slice:":2" %}<span class="genre-tag">{{ genre.name }}</span>{% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+
+            <!-- Popular TV Shows Section -->
             <section class="media-section">
                 <div class="section-header">
                     <h2 class="section-title-modern">
@@ -1371,25 +1515,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Add loading animation to all action buttons (including new watched button)
+    // AJAX action forms (watchlist / watched / favorite)
     const actionForms = document.querySelectorAll('.action-form');
-
     actionForms.forEach(form => {
         form.addEventListener('submit', function(e) {
+            e.preventDefault();
             const button = this.querySelector('button');
             const originalHTML = button.innerHTML;
-            const originalClass = button.className;
-
             button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            button.className = originalClass + ' loading';
             button.disabled = true;
-
-            // Re-enable button after 2 seconds (in case of error)
+            ajaxForm(this, null);
             setTimeout(() => {
                 button.innerHTML = originalHTML;
-                button.className = originalClass;
                 button.disabled = false;
-            }, 2000);
+            }, 1000);
         });
     });
 

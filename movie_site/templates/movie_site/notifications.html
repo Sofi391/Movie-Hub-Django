@@ -74,7 +74,7 @@
                         </div>
                         <div class="notification-details">
                             <div class="notification-title">
-                                <span>{{ notification.title }}</span>
+                                <span>{{ notification.title|safe }}</span>
                                 <span class="notification-time">
                                     {% if notification.created_at|timesince == "0 minutes" %}
                                     Just now
@@ -84,7 +84,7 @@
                                 </span>
                             </div>
                             <p class="notification-preview">
-                                {{ notification.content|truncatechars:120 }}
+                                {{ notification.content|truncatechars:120|safe }}
                             </p>
                             <div class="read-more">
                                 <span>Click to view full message</span>
@@ -154,7 +154,7 @@
 
             // Get notification data from data attributes
             const notificationItem = document.querySelector(`[data-notification-id="${notificationId}"]`);
-            const title = notificationItem.querySelector('.notification-title span:first-child').textContent;
+            const title = notificationItem.querySelector('.notification-title span:first-child').innerHTML;
             const content = notificationItem.dataset.fullContent;
             const time = notificationItem.querySelector('.notification-time').textContent;
 
@@ -170,7 +170,7 @@
 
             // Update popup content
             document.getElementById('popup-icon').textContent = icon;
-            document.getElementById('popup-title-text').textContent = title;
+            document.getElementById('popup-title-text').innerHTML = title;
             document.getElementById('popup-date').textContent = time;
             document.getElementById('popup-message').innerHTML = formatMessageContent(content);
 
@@ -204,10 +204,10 @@
         function formatMessageContent(content) {
             // Create a temporary div to handle HTML escaping and formatting
             const tempDiv = document.createElement('div');
-            tempDiv.textContent = content;
+            // tempDiv.textContent = content; // Removed to allow HTML rendering
 
             // Get the text content with proper escaping
-            let formatted = tempDiv.innerHTML;
+            let formatted = content;
 
             // Replace newlines with <br> tags
             formatted = formatted.replace(/\n/g, '<br>');

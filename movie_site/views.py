@@ -1,6 +1,6 @@
 from django.db.models import Q
 from django.shortcuts import render,redirect,get_object_or_404
-from .models import Media, UserMedia, Favorite, Profile, UserBadge, Badge, Question, UserQuizAttempt, Notification
+from .models import Media, UserMedia, Favorite, Profile, UserBadge, Badge, Question, UserQuizAttempt, Notification, Genre
 from django.views.generic import ListView,UpdateView,DeleteView,CreateView
 from django.urls import reverse_lazy
 from django.conf import settings
@@ -121,7 +121,7 @@ class Home(ListView):
         context['trending_shows'] = trending_shows
 
 
-        # User stats
+        # User stats + recommendations
         if self.request.user.is_authenticated:
             context['Watched_count'] = UserMedia.objects.filter(
                 user=self.request.user, status='Watched'
@@ -132,6 +132,39 @@ class Home(ListView):
             context['favorite_count'] = Favorite.objects.filter(
                 user=self.request.user
             ).count()
+
+            # IDs the user already has in their lists
+            user_media_ids = list(UserMedia.objects.filter(
+                user=self.request.user
+            ).values_list('media_id', flat=True))
+
+            # Top genres from ALL watched content (movies + shows combined)
+            watched_media_ids = list(UserMedia.objects.filter(
+                user=self.request.user, status='Watched'
+            ).values_list('media_id', flat=True))
+
+            top_genre_ids = list(Genre.objects.filter(
+                media__id__in=watched_media_ids
+            ).annotate(count=Count('id')).order_by('-count').values_list('id', flat=True)[:5])
+
+            if top_genre_ids:
+                context['recommended_movies'] = list(
+                    movies.filter(genre__id__in=top_genre_ids)
+                    .exclude(id__in=user_media_ids)
+                    .order_by('-rating')
+                    .prefetch_related('genre')
+                    .distinct()[:12]
+                )
+                context['recommended_shows'] = list(
+                    tv.filter(genre__id__in=top_genre_ids)
+                    .exclude(id__in=user_media_ids)
+                    .order_by('-rating')
+                    .prefetch_related('genre')
+                    .distinct()[:12]
+                )
+            else:
+                context['recommended_movies'] = []
+                context['recommended_shows'] = []
 
         return context
 
@@ -310,6 +343,8 @@ def delete_user_media(request, media_slug):
     media_type = media.type
     status = user_media.status
     user_media.delete()
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': True, 'message': f'"{media.name}" removed from your list.'})
     return redirect('user_media', type=media_type,status=status)
 
 
@@ -321,6 +356,8 @@ def remove_from_fav(request, media_slug):
     user_media = get_object_or_404(Favorite, media=media, user=request.user)
     media_type = media.type
     user_media.delete()
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': True, 'message': f'"{media.name}" removed from favorites.'})
     return redirect('favorites', type=media_type)
 
 
@@ -355,6 +392,8 @@ def mark_as_watched(request, media_slug):
         user_media.status = 'Watched'
         user_media.save()
     add_badges(request.user)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': True, 'message': f'"{media.name}" marked as watched.'})
     return redirect('user_media', type=media_type,status='Watched')
 
 
@@ -420,6 +459,8 @@ def mark_as_watchlist(request, media_slug):
     media_type = media.type
     user_media.status = 'Watchlist'
     user_media.save()
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': True, 'message': f'"{media.name}" added to watchlist.'})
     return redirect('user_media', type=media_type,status='Watchlist')
 
 
@@ -671,6 +712,97 @@ def get_trailer_url(media_id, media_type, headers):
 
 
 
+@login_required
+def random_pick(request, type):
+    items = UserMedia.objects.filter(
+        user=request.user, status='Watchlist', media__type=type
+    ).select_related('media').prefetch_related('media__genre')
+    if not items.exists():
+        return JsonResponse({'found': False})
+    pick = random.choice(list(items))
+    m = pick.media
+    return JsonResponse({
+        'found': True,
+        'name':        m.name,
+        'poster':      m.poster or '',
+        'year':        m.release_date.year if m.release_date else '',
+        'rating':      m.rating,
+        'trailer_url': m.trailer_url or '',
+        'genres':      [g.name for g in m.genre.all()],
+        'description': m.description or '',
+        'slug':        m.slug,
+    })
+
+
+def _build_user_media_queryset(status_param, media_type, target_user, get_params):
+    STATUS_MAP = {'watched': 'Watched', 'watchlist': 'Watchlist'}
+    status = STATUS_MAP.get(status_param.lower()) if status_param else None
+    queryset = UserMedia.objects.filter(
+        user=target_user, status=status, media__type=media_type
+    ).order_by('-added_at').select_related('media').prefetch_related('media__genre')
+
+    genres = get_params.get('genres')
+    rating = get_params.get('rating')
+    older  = get_params.get('older')
+    search = get_params.get('query')
+
+    if genres:
+        genre_list = genres.split(',') if ',' in genres else [genres]
+        queryset = queryset.filter(media__genre__slug__in=genre_list)
+    if rating:
+        try:
+            queryset = queryset.filter(media__rating__gte=float(rating))
+        except (ValueError, TypeError):
+            pass
+    if older:
+        queryset = queryset.order_by('added_at')
+    if search:
+        queryset = queryset.filter(media__name__icontains=search)
+    return queryset
+
+
+@login_required
+def user_media_json(request, status, type):
+    """Returns a page of UserMedia items as JSON for infinite scroll."""
+    target_user = request.user
+    user_id = request.GET.get('user_id')
+    if user_id:
+        try:
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            pass
+
+    queryset = _build_user_media_queryset(status, type, target_user, request.GET)
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(queryset, 12)
+    page_num = int(request.GET.get('page', 1))
+    try:
+        page = paginator.page(page_num)
+    except Exception:
+        return JsonResponse({'items': [], 'has_next': False})
+
+    is_own = (target_user == request.user)
+    items = []
+    for um in page.object_list:
+        items.append({
+            'id':          um.media.id,
+            'name':        um.media.name,
+            'poster':      um.media.poster or '',
+            'slug':        um.media.slug,
+            'rating':      um.media.rating,
+            'year':        um.media.release_date.year if um.media.release_date else '',
+            'trailer_url': um.media.trailer_url or '',
+            'genres':      [{'name': g.name, 'slug': g.slug} for g in um.media.genre.all()],
+            'description': um.media.description or '',
+            'user_rating': um.rating,
+            'user_review': um.review or '',
+            'status':      um.status,
+            'is_own':      is_own,
+        })
+    return JsonResponse({'items': items, 'has_next': page.has_next()})
+
+
 class UserMediaListView(LoginRequiredMixin, ListView):
     model = UserMedia
     template_name = 'movie_site/user_watches.html'
@@ -858,8 +990,12 @@ def add_to_collection(request):
             defaults={'status': 'Watchlist'}
         )
 
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'message': f'"{title}" added to watchlist.'})
         return redirect('user_media', status='Watchlist', type=media_type)
 
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': False, 'message': 'Missing required fields.'}, status=400)
     return redirect('search_movies')
 
 
@@ -896,8 +1032,12 @@ def add_to_watched(request):
         )
         add_badges(request.user)
 
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'message': f'"{title}" marked as watched.'})
         return redirect('user_media', status='Watched', type=media_type)
 
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': False, 'message': 'Missing required fields.'}, status=400)
     return redirect('search_movies')
 
 
@@ -932,8 +1072,12 @@ def add_to_favorite(request):
             media=media_added,
         )
 
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'message': f'"{title}" added to favorites.'})
         return redirect('favorites', type=media_type)
 
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': False, 'message': 'Missing required fields.'}, status=400)
     return redirect('search_movies')
 
 

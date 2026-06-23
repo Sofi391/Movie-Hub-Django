@@ -368,18 +368,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Loading animations for buttons
+    // AJAX action forms
     const actionForms = document.querySelectorAll('.action-form');
     actionForms.forEach(form => {
         form.addEventListener('submit', function(e) {
+            e.preventDefault();
             const button = this.querySelector('button');
             const originalHTML = button.innerHTML;
             button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             button.disabled = true;
-            setTimeout(() => {
-                button.innerHTML = originalHTML;
-                button.disabled = false;
-            }, 2000);
+            const card = this.closest('.media-card');
+            const isRemove = button.classList.contains('remove-btn');
+            ajaxForm(this, () => {
+                if (isRemove && card) {
+                    card.style.transition = 'opacity 0.3s ease';
+                    card.style.opacity = '0';
+                    setTimeout(() => card.remove(), 300);
+                } else {
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                }
+            });
+            if (!isRemove) {
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                }, 1000);
+            }
         });
     });
 

@@ -1266,6 +1266,48 @@
         </div>
     </div>
 
+    <!-- Toast Notification -->
+    <div id="ajaxToast">
+        <span id="ajaxToastIcon"></span>
+        <span id="ajaxToastMsg"></span>
+    </div>
+    <style>
+        #ajaxToast {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%) translateY(30px);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 13px 22px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(18,18,18,0.97), rgba(28,28,28,0.97));
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+            color: #e8e8e8;
+            font-size: 1.05rem;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+            z-index: 999999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s cubic-bezier(0.16,1,0.3,1), transform 0.3s cubic-bezier(0.16,1,0.3,1);
+            backdrop-filter: blur(12px);
+            max-width: 90vw;
+            white-space: nowrap;
+        }
+        #ajaxToast.toast-show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        #ajaxToast.toast-success { border-left: 3px solid #64b5f6; }
+        #ajaxToast.toast-error   { border-left: 3px solid #e50914; }
+        #ajaxToastIcon { font-size: 1rem; }
+        #ajaxToast.toast-success #ajaxToastIcon { color: #64b5f6; }
+        #ajaxToast.toast-error   #ajaxToastIcon { color: #e50914; }
+    </style>
+
     <!-- Main Content -->
     <main class="main-content">
         {% block content %}
@@ -1700,6 +1742,35 @@
                 }
             });
         });
+    </script>
+
+    <script>
+        function showAjaxToast(message, isError) {
+            const toast = document.getElementById('ajaxToast');
+            const icon = document.getElementById('ajaxToastIcon');
+            const msg = document.getElementById('ajaxToastMsg');
+            icon.className = isError ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+            msg.textContent = message;
+            toast.className = isError ? 'toast-error' : 'toast-success';
+            void toast.offsetWidth;
+            toast.classList.add('toast-show');
+            clearTimeout(toast._t);
+            toast._t = setTimeout(() => toast.classList.remove('toast-show'), 3200);
+        }
+
+        function ajaxForm(form, onSuccess) {
+            fetch(form.action, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: new FormData(form)
+            })
+            .then(r => r.json())
+            .then(data => {
+                showAjaxToast(data.message, !data.success);
+                if (data.success && onSuccess) onSuccess();
+            })
+            .catch(() => showAjaxToast('Something went wrong.', true));
+        }
     </script>
 
     {% block extra_js %}{% endblock %}

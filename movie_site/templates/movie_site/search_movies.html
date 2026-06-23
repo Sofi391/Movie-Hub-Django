@@ -708,25 +708,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Add loading animation to all action buttons (including new watched button)
+    // AJAX action forms (watchlist / watched / favorite)
     const actionForms = document.querySelectorAll('.action-form');
-
     actionForms.forEach(form => {
         form.addEventListener('submit', function(e) {
+            e.preventDefault();
             const button = this.querySelector('button');
             const originalHTML = button.innerHTML;
-            const originalClass = button.className;
-
             button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            button.className = originalClass + ' loading';
             button.disabled = true;
-
-            // Re-enable button after 2 seconds (in case of error)
+            ajaxForm(this, null);
             setTimeout(() => {
                 button.innerHTML = originalHTML;
-                button.className = originalClass;
                 button.disabled = false;
-            }, 2000);
+            }, 1000);
         });
     });
 
